@@ -14,6 +14,12 @@ export async function preloadAssets(items) {
 
     const results = await Promise.allSettled(promises);
 
+    results.forEach((result, index) => {
+        if (result.status === "rejected") {
+            console.warn("No se pudo precargar contenido:", items[index], result.reason);
+        }
+    });
+
     return results
         .filter(result => result.status === "fulfilled")
         .map(result => result.value);
@@ -88,7 +94,7 @@ function preloadImage(src) {
         const img = new Image();
         const timeout = setTimeout(() => {
             reject(new Error(`Tiempo agotado cargando imagen: ${src}`));
-        }, 15000);
+        }, 45000);
 
         img.onload = () => {
             clearTimeout(timeout);
