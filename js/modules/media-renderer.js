@@ -82,6 +82,21 @@ function renderImage(container, item, playback, lifecycle) {
         ? item.duration
         : 10000;
     let timeoutId = null;
+    let loadTimeoutId = null;
+    let imageSettled = false;
+
+    function failImage() {
+        if (imageSettled) {
+            return;
+        }
+
+        imageSettled = true;
+        console.error("Error cargando imagen:", item.src);
+
+        if (!lifecycle.isCancelled()) {
+            lifecycle.onFailure();
+        }
+    }
 
     img.style.width = "100%";
     img.style.height = "100%";
@@ -92,6 +107,8 @@ function renderImage(container, item, playback, lifecycle) {
             return;
         }
 
+        imageSettled = true;
+        clearTimeout(loadTimeoutId);
         lifecycle.onReady();
 
         timeoutId = setTimeout(() => {
@@ -100,19 +117,21 @@ function renderImage(container, item, playback, lifecycle) {
     }, { once: true });
 
     img.addEventListener("error", () => {
-        console.error("Error cargando imagen:", item.src);
-
-        if (!lifecycle.isCancelled()) {
-            lifecycle.onFailure();
-        }
+        clearTimeout(loadTimeoutId);
+        failImage();
     }, { once: true });
 
     container.appendChild(img);
     img.src = getItemSource(item);
+    loadTimeoutId = setTimeout(failImage, 15000);
 
     return () => {
         if (timeoutId) {
             clearTimeout(timeoutId);
+        }
+
+        if (loadTimeoutId) {
+            clearTimeout(loadTimeoutId);
         }
     };
 }

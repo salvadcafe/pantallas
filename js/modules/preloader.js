@@ -21,8 +21,10 @@ export async function preloadAssets(items) {
     });
 
     return results
-        .filter(result => result.status === "fulfilled")
-        .map(result => result.value);
+        .map((result, index) => result.status === "fulfilled"
+            ? result.value
+            : prepareItem(items[index]))
+        .filter(item => item.src && (item.type === "image" || item.type === "video"));
 }
 
 /**
