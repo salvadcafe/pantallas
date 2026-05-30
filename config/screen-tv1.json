@@ -19,6 +19,10 @@
             "type": "image",
             "src": "assets/videos/promo_vota.png",
             "duration": 12000
+        },
+        {
+            "type": "video",
+            "src": "assets/videos/prom_cerveza.mp4"
         }
     ]
 }
