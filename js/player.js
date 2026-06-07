@@ -273,7 +273,7 @@ function showImage(container, item) {
     img.style.width = "100%";
     img.style.height = "100%";
 
-    img.style.objectFit = "contain";
+    img.style.objectFit = "cover";
 
     container.appendChild(img);
 
@@ -305,7 +305,7 @@ function showVideo(container, item) {
     video.style.width = "100%";
     video.style.height = "100%";
 
-    video.style.objectFit = "contain";
+    video.style.objectFit = "cover";
 
     video.addEventListener(
         "ended",
