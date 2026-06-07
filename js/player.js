@@ -310,27 +310,65 @@ function showVideo(container, item) {
     const video =
         document.createElement("video");
 
+    video.preload = "auto";
+
     video.src =
         `${item.src}?v=${Date.now()}`;
 
     video.autoplay = true;
     video.muted = true;
     video.playsInline = true;
+    video.controls = false;
 
     video.style.width = "100%";
     video.style.height = "100%";
 
     video.style.objectFit = "cover";
 
-    video.addEventListener(
-        "ended",
-        nextSlide
-    );
+    video.addEventListener("ended", () => {
 
-    video.addEventListener(
-        "error",
-        nextSlide
-    );
+        if (activeItems.length === 1) {
+
+            video.currentTime = 0;
+
+            const playPromise =
+                video.play();
+
+            if (playPromise) {
+
+                playPromise.catch(error => {
+
+                    console.error(
+                        "Error reiniciando video:",
+                        error
+                    );
+
+                });
+
+            }
+
+            return;
+
+        }
+
+        nextSlide();
+
+    });
+
+    video.addEventListener("error", () => {
+
+        console.error(
+            "Error reproduciendo video:",
+            item.src
+        );
+
+        if (activeItems.length > 1) {
+
+            nextSlide();
+
+        }
+
+    });
 
     container.appendChild(video);
 
