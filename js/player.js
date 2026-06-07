@@ -104,15 +104,35 @@ function applyOrientation() {
 
     const player = document.getElementById("player");
 
-    player.style.width = "100vw";
-    player.style.height = "100vh";
+    const rotation = currentConfig.rotation || 0;
+
+    player.style.position = "fixed";
+    player.style.top = "0";
+    player.style.left = "0";
 
     player.style.display = "flex";
     player.style.justifyContent = "center";
     player.style.alignItems = "center";
 
-    player.style.transform =
-        `rotate(${currentConfig.rotation || 0}deg)`;
+    if (rotation === 90 || rotation === 270) {
+
+        player.style.width = "100vh";
+        player.style.height = "100vw";
+
+        player.style.transformOrigin = "center center";
+        player.style.transform =
+            `translate(calc((100vw - 100vh) / 2), calc((100vh - 100vw) / 2)) rotate(${rotation}deg)`;
+
+    } else {
+
+        player.style.width = "100vw";
+        player.style.height = "100vh";
+
+        player.style.transformOrigin = "center center";
+        player.style.transform =
+            `rotate(${rotation}deg)`;
+
+    }
 
 }
 
