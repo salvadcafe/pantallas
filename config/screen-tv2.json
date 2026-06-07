@@ -1,6 +1,6 @@
 {
     "name": "Patanlla Izquierda",
-    "rotation": 90,
+    "rotation": 270,
     "slideDuration": 10000,
     "refreshConfigSeconds": 60,
     "items": [
