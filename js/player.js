@@ -297,16 +297,11 @@ function showImage(container, item) {
 
     container.appendChild(img);
 
-    const duration =
-        item.duration ||
-        currentConfig.slideDuration ||
-        10000;
-
     setTimeout(() => {
 
         nextSlide();
 
-    }, duration);
+    }, item.duration);
 
 }
 
@@ -340,7 +335,6 @@ function showVideo(container, item) {
     container.appendChild(video);
 
 }
-
 function nextSlide() {
 
     currentIndex++;
