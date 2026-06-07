@@ -1,0 +1,32 @@
+{
+    "name": "TV Principal",
+
+    "orientation": "vertical",
+
+    "rotation": 90,
+
+    "slideDuration": 10000,
+
+    "refreshConfigSeconds": 60,
+
+    "items": [
+        {
+            "type": "image",
+            "src": "assets/images/menu1.jpg",
+            "duration": 15000
+        },
+
+        {
+            "type": "video",
+            "src": "assets/videos/promo1.mp4"
+        },
+
+        {
+            "type": "image",
+            "src": "assets/images/promo1.jpg",
+            "duration": 10000,
+            "startTime": "06:00",
+            "endTime": "11:59"
+        }
+    ]
+}
