@@ -9,20 +9,36 @@ import { withCacheBuster } from "./cache.js";
  */
 export function renderItem(player, item, playback) {
     const container = createSlideContainer();
+    let cleanup = () => {};
+    let cancelled = false;
 
-    player.innerHTML = "";
     player.appendChild(container);
 
-    requestAnimationFrame(() => {
-        container.style.opacity = "1";
-    });
-
     if (item.type === "image") {
-        renderImage(container, item, playback);
-        return;
+        cleanup = renderImage(container, item, playback, {
+            onReady: () => showReadySlide(player, container),
+            onFailure: () => handleRenderFailure(player, container, playback),
+            isCancelled: () => cancelled,
+        });
+
+        return () => {
+            cancelled = true;
+            cleanup();
+            removeElement(container);
+        };
     }
 
-    renderVideo(container, item, playback);
+    cleanup = renderVideo(container, item, playback, {
+        onReady: () => showReadySlide(player, container),
+        onFailure: () => handleRenderFailure(player, container, playback),
+        isCancelled: () => cancelled,
+    });
+
+    return () => {
+        cancelled = true;
+        cleanup();
+        removeElement(container);
+    };
 }
 
 /**
@@ -38,6 +54,7 @@ function createSlideContainer() {
 
     container.className = "slide";
     container.style.position = "absolute";
+    container.style.inset = "0";
     container.style.width = "100%";
     container.style.height = "100%";
     container.style.opacity = "0";
@@ -53,20 +70,45 @@ function createSlideContainer() {
  * @param {object} item Configuracion de la imagen.
  * @param {object} playback Controlador de reproduccion de la lista.
  */
-function renderImage(container, item, playback) {
+function renderImage(container, item, playback, lifecycle) {
     const img = document.createElement("img");
+    const duration = Number.isFinite(item.duration) && item.duration > 0
+        ? item.duration
+        : 10000;
+    let timeoutId = null;
 
-    img.src = withCacheBuster(item.src);
     img.style.width = "100%";
     img.style.height = "100%";
     img.style.objectFit = "cover";
 
-    container.appendChild(img);
+    img.addEventListener("load", () => {
+        if (lifecycle.isCancelled()) {
+            return;
+        }
 
-    // Las imagenes no tienen evento "ended"; por eso usan duration.
-    setTimeout(() => {
-        playback.next();
-    }, item.duration);
+        lifecycle.onReady();
+
+        timeoutId = setTimeout(() => {
+            playback.next();
+        }, duration);
+    }, { once: true });
+
+    img.addEventListener("error", () => {
+        console.error("Error cargando imagen:", item.src);
+
+        if (!lifecycle.isCancelled()) {
+            lifecycle.onFailure();
+        }
+    }, { once: true });
+
+    container.appendChild(img);
+    img.src = withCacheBuster(item.src);
+
+    return () => {
+        if (timeoutId) {
+            clearTimeout(timeoutId);
+        }
+    };
 }
 
 /**
@@ -76,11 +118,12 @@ function renderImage(container, item, playback) {
  * @param {object} item Configuracion del video.
  * @param {object} playback Controlador de reproduccion de la lista.
  */
-function renderVideo(container, item, playback) {
+function renderVideo(container, item, playback, lifecycle) {
     const video = document.createElement("video");
+    let ready = false;
+    let stalledTimeoutId = null;
 
     video.preload = "auto";
-    video.src = withCacheBuster(item.src);
     video.autoplay = true;
 
     // Los navegadores suelen permitir autoplay solo si el video esta silenciado.
@@ -91,6 +134,30 @@ function renderVideo(container, item, playback) {
     video.style.height = "100%";
     video.style.objectFit = "cover";
 
+    function markReady() {
+        if (ready || lifecycle.isCancelled()) {
+            return;
+        }
+
+        ready = true;
+        clearTimeout(stalledTimeoutId);
+        lifecycle.onReady();
+    }
+
+    function fail(error) {
+        if (lifecycle.isCancelled()) {
+            return;
+        }
+
+        clearTimeout(stalledTimeoutId);
+        console.error("Error reproduciendo video:", item.src, error || "");
+        lifecycle.onFailure();
+    }
+
+    video.addEventListener("loadeddata", markReady, { once: true });
+    video.addEventListener("canplay", markReady, { once: true });
+    video.addEventListener("playing", markReady, { once: true });
+
     video.addEventListener("ended", () => {
         if (playback.isSingleItem()) {
             restartVideo(video);
@@ -100,15 +167,32 @@ function renderVideo(container, item, playback) {
         playback.next();
     });
 
-    video.addEventListener("error", () => {
-        console.error("Error reproduciendo video:", item.src);
+    video.addEventListener("error", fail, { once: true });
+    video.addEventListener("stalled", () => {
+        clearTimeout(stalledTimeoutId);
 
-        if (!playback.isSingleItem()) {
-            playback.next();
-        }
+        stalledTimeoutId = setTimeout(() => {
+            if (!ready) {
+                fail(new Error("Video detenido antes de estar listo"));
+            }
+        }, 8000);
     });
 
     container.appendChild(video);
+    video.src = withCacheBuster(item.src);
+
+    const playPromise = video.play();
+
+    if (playPromise) {
+        playPromise.catch(fail);
+    }
+
+    return () => {
+        clearTimeout(stalledTimeoutId);
+        video.pause();
+        video.removeAttribute("src");
+        video.load();
+    };
 }
 
 /**
@@ -125,5 +209,60 @@ function restartVideo(video) {
         playPromise.catch(error => {
             console.error("Error reiniciando video:", error);
         });
+    }
+}
+
+/**
+ * Muestra el slide nuevo y retira el contenido anterior despues de la transicion.
+ *
+ * @param {HTMLElement} player Contenedor #player.
+ * @param {HTMLElement} container Slide listo para mostrar.
+ */
+function showReadySlide(player, container) {
+    const previousChildren = Array.from(player.children)
+        .filter(child => child !== container);
+
+    container.classList.add("ready");
+
+    requestAnimationFrame(() => {
+        container.style.opacity = "1";
+    });
+
+    setTimeout(() => {
+        previousChildren.forEach(removeElement);
+    }, 1100);
+}
+
+/**
+ * Recupera la reproduccion si un medio no se puede mostrar.
+ *
+ * @param {HTMLElement} player Contenedor #player.
+ * @param {HTMLElement} container Slide fallido.
+ * @param {object} playback Controlador de reproduccion de la lista.
+ */
+function handleRenderFailure(player, container, playback) {
+    removeElement(container);
+
+    if (playback.isSingleItem()) {
+        playback.showFallback("No se pudo cargar el contenido. Reintentando...");
+
+        setTimeout(() => {
+            playback.next();
+        }, 5000);
+
+        return;
+    }
+
+    playback.next();
+}
+
+/**
+ * Quita un elemento solo si sigue conectado al DOM.
+ *
+ * @param {Element} element Elemento que se debe retirar.
+ */
+function removeElement(element) {
+    if (element.parentNode) {
+        element.parentNode.removeChild(element);
     }
 }

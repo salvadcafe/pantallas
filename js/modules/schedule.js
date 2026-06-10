@@ -27,7 +27,15 @@ function isItemActiveNow(item, currentMinutes) {
     const start = toMinutes(item.startTime);
     const end = toMinutes(item.endTime);
 
-    return currentMinutes >= start && currentMinutes <= end;
+    if (!Number.isFinite(start) || !Number.isFinite(end)) {
+        return true;
+    }
+
+    if (start <= end) {
+        return currentMinutes >= start && currentMinutes <= end;
+    }
+
+    return currentMinutes >= start || currentMinutes <= end;
 }
 
 /**

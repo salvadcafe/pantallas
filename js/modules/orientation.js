@@ -8,6 +8,8 @@
  * @param {number} rotation Grados de rotacion definidos en la configuracion.
  */
 export function applyOrientation(player, rotation = 0) {
+    const normalizedRotation = Number(rotation) || 0;
+
     document.body.style.margin = "0";
     document.body.style.background = "#000";
     document.body.style.overflow = "hidden";
@@ -20,18 +22,18 @@ export function applyOrientation(player, rotation = 0) {
     player.style.alignItems = "center";
     player.style.transformOrigin = "center center";
 
-    if (rotation === 90 || rotation === 270) {
+    if (normalizedRotation === 90 || normalizedRotation === 270) {
         player.style.width = "100vh";
         player.style.height = "100vw";
 
         // Centra el contenedor despues de intercambiar sus dimensiones.
         player.style.transform =
-            `translate(calc((100vw - 100vh) / 2), calc((100vh - 100vw) / 2)) rotate(${rotation}deg)`;
+            `translate(calc((100vw - 100vh) / 2), calc((100vh - 100vw) / 2)) rotate(${normalizedRotation}deg)`;
 
         return;
     }
 
     player.style.width = "100vw";
     player.style.height = "100vh";
-    player.style.transform = `rotate(${rotation}deg)`;
+    player.style.transform = `rotate(${normalizedRotation}deg)`;
 }

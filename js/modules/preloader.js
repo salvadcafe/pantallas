@@ -12,7 +12,16 @@ import { withCacheBuster } from "./cache.js";
 export async function preloadAssets(items) {
     const promises = items.map(item => preloadAsset(item));
 
-    await Promise.allSettled(promises);
+    const results = await Promise.allSettled(promises);
+
+    return results
+        .map((result, index) => ({
+            item: items[index],
+            status: result.status,
+            reason: result.reason,
+        }))
+        .filter(result => result.status === "fulfilled")
+        .map(result => result.item);
 }
 
 /**
@@ -22,6 +31,10 @@ export async function preloadAssets(items) {
  * @returns {Promise<void>}
  */
 function preloadAsset(item) {
+    if (!item.src) {
+        return Promise.reject(new Error("Item sin ruta de contenido"));
+    }
+
     if (item.type === "image") {
         return preloadImage(item.src);
     }
@@ -30,7 +43,7 @@ function preloadAsset(item) {
         return preloadVideo(item.src);
     }
 
-    return Promise.resolve();
+    return Promise.reject(new Error(`Tipo de contenido no soportado: ${item.type}`));
 }
 
 /**
@@ -40,11 +53,20 @@ function preloadAsset(item) {
  * @returns {Promise<void>}
  */
 function preloadImage(src) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
         const img = new Image();
+        const timeout = setTimeout(() => {
+            reject(new Error(`Tiempo agotado cargando imagen: ${src}`));
+        }, 15000);
 
-        img.onload = resolve;
-        img.onerror = resolve;
+        img.onload = () => {
+            clearTimeout(timeout);
+            resolve();
+        };
+        img.onerror = () => {
+            clearTimeout(timeout);
+            reject(new Error(`Error cargando imagen: ${src}`));
+        };
         img.src = withCacheBuster(src);
     });
 }
@@ -56,12 +78,23 @@ function preloadImage(src) {
  * @returns {Promise<void>}
  */
 function preloadVideo(src) {
-    return new Promise(resolve => {
+    return new Promise((resolve, reject) => {
         const video = document.createElement("video");
+        const timeout = setTimeout(() => {
+            reject(new Error(`Tiempo agotado cargando video: ${src}`));
+        }, 20000);
 
         video.preload = "metadata";
-        video.onloadedmetadata = resolve;
-        video.onerror = resolve;
+        video.muted = true;
+        video.playsInline = true;
+        video.onloadedmetadata = () => {
+            clearTimeout(timeout);
+            resolve();
+        };
+        video.onerror = () => {
+            clearTimeout(timeout);
+            reject(new Error(`Error cargando video: ${src}`));
+        };
         video.src = withCacheBuster(src);
     });
 }

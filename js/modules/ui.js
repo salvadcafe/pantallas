@@ -13,7 +13,7 @@ export function getPlayerElement() {
  * @param {string} message Mensaje visible para el usuario.
  */
 export function showError(message) {
-    document.body.innerHTML = `
+    const errorHtml = `
         <div style="
             background:black;
             color:white;
@@ -29,4 +29,12 @@ export function showError(message) {
             ${message}
         </div>
     `;
+    const player = getPlayerElement();
+
+    if (player) {
+        player.innerHTML = errorHtml;
+        return;
+    }
+
+    document.body.innerHTML = errorHtml;
 }

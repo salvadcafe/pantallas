@@ -59,9 +59,14 @@ export async function startPlayer() {
                 return;
             }
 
-            await preloadAssets(activeItems);
+            const playableItems = await preloadAssets(activeItems);
 
-            playlistPlayer.setItems(activeItems);
+            if (playableItems.length === 0) {
+                showError("No se pudo cargar ningun contenido");
+                return;
+            }
+
+            playlistPlayer.setItems(playableItems);
             playlistPlayer.play();
         }
 

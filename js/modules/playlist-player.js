@@ -12,6 +12,8 @@ import { renderItem } from "./media-renderer.js";
 export function createPlaylistPlayer(playerElement) {
     let items = [];
     let currentIndex = 0;
+    let playbackVersion = 0;
+    let cleanupCurrentItem = null;
 
     /**
      * Reemplaza la lista activa y vuelve al primer elemento.
@@ -21,6 +23,12 @@ export function createPlaylistPlayer(playerElement) {
     function setItems(nextItems) {
         items = nextItems;
         currentIndex = 0;
+        playbackVersion++;
+
+        if (cleanupCurrentItem) {
+            cleanupCurrentItem();
+            cleanupCurrentItem = null;
+        }
     }
 
     /**
@@ -31,9 +39,16 @@ export function createPlaylistPlayer(playerElement) {
             return;
         }
 
-        renderItem(playerElement, items[currentIndex], {
-            next,
+        const itemVersion = playbackVersion;
+
+        cleanupCurrentItem = renderItem(playerElement, items[currentIndex], {
+            next: () => {
+                if (itemVersion === playbackVersion) {
+                    next();
+                }
+            },
             isSingleItem,
+            showFallback,
         });
     }
 
@@ -41,6 +56,13 @@ export function createPlaylistPlayer(playerElement) {
      * Avanza al siguiente item. Si llega al final, vuelve al inicio.
      */
     function next() {
+        playbackVersion++;
+
+        if (cleanupCurrentItem) {
+            cleanupCurrentItem();
+            cleanupCurrentItem = null;
+        }
+
         currentIndex++;
 
         if (currentIndex >= items.length) {
@@ -57,6 +79,23 @@ export function createPlaylistPlayer(playerElement) {
      */
     function isSingleItem() {
         return items.length === 1;
+    }
+
+    /**
+     * Muestra un mensaje visible si no hay ningun medio confiable que conservar.
+     *
+     * @param {string} message Mensaje de recuperacion.
+     */
+    function showFallback(message) {
+        if (playerElement.querySelector(".slide.ready")) {
+            return;
+        }
+
+        playerElement.innerHTML = `
+            <div class="loading">
+                ${message}
+            </div>
+        `;
     }
 
     return {
