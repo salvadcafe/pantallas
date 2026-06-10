@@ -1,4 +1,5 @@
 import { renderItem } from "./media-renderer.js";
+import { warmItem } from "./preloader.js";
 
 /**
  * Crea un reproductor de lista con estado privado.
@@ -50,6 +51,8 @@ export function createPlaylistPlayer(playerElement) {
             isSingleItem,
             showFallback,
         });
+
+        warmNextItem(itemVersion);
     }
 
     /**
@@ -59,7 +62,7 @@ export function createPlaylistPlayer(playerElement) {
         playbackVersion++;
 
         if (cleanupCurrentItem) {
-            cleanupCurrentItem();
+            cleanupCurrentItem({ keepElement: true });
             cleanupCurrentItem = null;
         }
 
@@ -70,6 +73,27 @@ export function createPlaylistPlayer(playerElement) {
         }
 
         play();
+    }
+
+    /**
+     * Precarga en segundo plano el siguiente elemento de la lista.
+     *
+     * @param {number} itemVersion Version activa al iniciar la precarga.
+     */
+    function warmNextItem(itemVersion) {
+        if (items.length <= 1) {
+            return;
+        }
+
+        const nextIndex = currentIndex + 1 >= items.length
+            ? 0
+            : currentIndex + 1;
+
+        warmItem(items[nextIndex]).catch(error => {
+            if (itemVersion === playbackVersion) {
+                console.warn("No se pudo precargar el siguiente contenido", error);
+            }
+        });
     }
 
     /**

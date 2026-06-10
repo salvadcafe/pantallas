@@ -7,21 +7,52 @@ import { withCacheBuster } from "./cache.js";
  * los errores individuales se toleran y el reproductor sigue con lo demas.
  *
  * @param {Array<object>} items Items de contenido activos.
- * @returns {Promise<void>}
+ * @returns {Promise<Array<object>>} Items cargables con URL estable.
  */
 export async function preloadAssets(items) {
-    const promises = items.map(item => preloadAsset(item));
+    const promises = items.map(item => preloadItem(item));
 
     const results = await Promise.allSettled(promises);
 
     return results
-        .map((result, index) => ({
-            item: items[index],
-            status: result.status,
-            reason: result.reason,
-        }))
         .filter(result => result.status === "fulfilled")
-        .map(result => result.item);
+        .map(result => result.value);
+}
+
+/**
+ * Prepara y precarga un item individual.
+ *
+ * @param {object} item Item de contenido.
+ * @returns {Promise<object>} Item con URL estable para reproduccion.
+ */
+export async function preloadItem(item) {
+    const preparedItem = prepareItem(item);
+
+    await preloadAsset(preparedItem);
+
+    return preparedItem;
+}
+
+/**
+ * Calienta el siguiente recurso para reducir esperas durante la transicion.
+ *
+ * @param {object} item Item ya preparado.
+ * @returns {Promise<void>}
+ */
+export function warmItem(item) {
+    if (!item?.playbackSrc) {
+        return Promise.resolve();
+    }
+
+    if (item.type === "image") {
+        return warmImage(item.playbackSrc);
+    }
+
+    if (item.type === "video") {
+        return warmVideo(item.playbackSrc);
+    }
+
+    return Promise.resolve();
 }
 
 /**
@@ -36,11 +67,11 @@ function preloadAsset(item) {
     }
 
     if (item.type === "image") {
-        return preloadImage(item.src);
+        return preloadImage(item.playbackSrc);
     }
 
     if (item.type === "video") {
-        return preloadVideo(item.src);
+        return preloadVideo(item.playbackSrc);
     }
 
     return Promise.reject(new Error(`Tipo de contenido no soportado: ${item.type}`));
@@ -67,7 +98,7 @@ function preloadImage(src) {
             clearTimeout(timeout);
             reject(new Error(`Error cargando imagen: ${src}`));
         };
-        img.src = withCacheBuster(src);
+        img.src = src;
     });
 }
 
@@ -95,6 +126,75 @@ function preloadVideo(src) {
             clearTimeout(timeout);
             reject(new Error(`Error cargando video: ${src}`));
         };
-        video.src = withCacheBuster(src);
+        video.src = src;
     });
+}
+
+/**
+ * Decodifica o carga una imagen antes de que sea visible.
+ *
+ * @param {string} src Ruta preparada.
+ * @returns {Promise<void>}
+ */
+function warmImage(src) {
+    return new Promise(resolve => {
+        const img = new Image();
+
+        img.onload = () => {
+            if (img.decode) {
+                img.decode().then(resolve).catch(resolve);
+                return;
+            }
+
+            resolve();
+        };
+        img.onerror = resolve;
+        img.src = src;
+    });
+}
+
+/**
+ * Solicita al navegador adelantar datos del video siguiente.
+ *
+ * @param {string} src Ruta preparada.
+ * @returns {Promise<void>}
+ */
+function warmVideo(src) {
+    return new Promise(resolve => {
+        const video = document.createElement("video");
+        const timeout = setTimeout(resolve, 15000);
+
+        function finish() {
+            clearTimeout(timeout);
+            resolve();
+        }
+
+        video.preload = "auto";
+        video.muted = true;
+        video.playsInline = true;
+        video.onloadeddata = finish;
+        video.oncanplay = finish;
+        video.oncanplaythrough = finish;
+        video.onerror = finish;
+        video.src = src;
+        video.load();
+    });
+}
+
+/**
+ * Asigna una URL anti-cache una sola vez para que precarga y reproduccion usen
+ * exactamente el mismo recurso.
+ *
+ * @param {object} item Item original.
+ * @returns {object} Item preparado.
+ */
+function prepareItem(item) {
+    if (item.playbackSrc) {
+        return item;
+    }
+
+    return {
+        ...item,
+        playbackSrc: withCacheBuster(item.src),
+    };
 }

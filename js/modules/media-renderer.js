@@ -21,10 +21,13 @@ export function renderItem(player, item, playback) {
             isCancelled: () => cancelled,
         });
 
-        return () => {
+        return (options = {}) => {
             cancelled = true;
-            cleanup();
-            removeElement(container);
+            cleanup(options);
+
+            if (!options.keepElement) {
+                removeElement(container);
+            }
         };
     }
 
@@ -34,10 +37,13 @@ export function renderItem(player, item, playback) {
         isCancelled: () => cancelled,
     });
 
-    return () => {
+    return (options = {}) => {
         cancelled = true;
-        cleanup();
-        removeElement(container);
+        cleanup(options);
+
+        if (!options.keepElement) {
+            removeElement(container);
+        }
     };
 }
 
@@ -102,7 +108,7 @@ function renderImage(container, item, playback, lifecycle) {
     }, { once: true });
 
     container.appendChild(img);
-    img.src = withCacheBuster(item.src);
+    img.src = getItemSource(item);
 
     return () => {
         if (timeoutId) {
@@ -179,7 +185,7 @@ function renderVideo(container, item, playback, lifecycle) {
     });
 
     container.appendChild(video);
-    video.src = withCacheBuster(item.src);
+    video.src = getItemSource(item);
 
     const playPromise = video.play();
 
@@ -187,9 +193,14 @@ function renderVideo(container, item, playback, lifecycle) {
         playPromise.catch(fail);
     }
 
-    return () => {
+    return (options = {}) => {
         clearTimeout(stalledTimeoutId);
         video.pause();
+
+        if (options.keepElement) {
+            return;
+        }
+
         video.removeAttribute("src");
         video.load();
     };
@@ -265,4 +276,14 @@ function removeElement(element) {
     if (element.parentNode) {
         element.parentNode.removeChild(element);
     }
+}
+
+/**
+ * Devuelve la URL preparada por precarga o genera una de respaldo.
+ *
+ * @param {object} item Item de contenido.
+ * @returns {string} URL reproducible.
+ */
+function getItemSource(item) {
+    return item.playbackSrc || withCacheBuster(item.src);
 }
