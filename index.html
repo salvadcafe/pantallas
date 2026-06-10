@@ -25,6 +25,7 @@
 
     <style>
 
+        /* Base visual de pantalla completa para evitar bordes o scroll. */
         * {
             margin: 0;
             padding: 0;
@@ -47,6 +48,7 @@
 
         #player {
 
+            /* Contenedor unico donde JavaScript inyecta cada imagen o video. */
             position: fixed;
 
             top: 0;
@@ -88,6 +90,7 @@
 
             -webkit-user-select: none;
 
+            /* La pantalla es solo de reproduccion; no debe capturar clics. */
             pointer-events: none;
 
         }
@@ -98,6 +101,7 @@
 
 <body>
 
+    <!-- Contenedor principal del reproductor. -->
     <div id="player">
 
         <div class="loading">
@@ -125,7 +129,8 @@
 
     </noscript>
 
-    <script src="js/player.js"></script>
+    <!-- Se carga como modulo ES para permitir imports entre archivos JS. -->
+    <script type="module" src="js/player.js"></script>
 
 </body>
 
