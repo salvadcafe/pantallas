@@ -10,6 +10,10 @@
         {
             "type": "video",
             "src": "assets/videos/arom_FA.mp4"
+        },
+        {
+            "type": "video",
+            "src": "assets/videos/sodaItalianaFR.mp4"
         }
     ]
 }
