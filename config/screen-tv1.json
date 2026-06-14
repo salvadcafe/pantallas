@@ -14,6 +14,10 @@
         {
             "type": "video",
             "src": "assets/videos/sodaItalianaFR.mp4"
+        },
+        {
+            "type": "video",
+            "src": "assets/videos/prom_cerveza.mp4"
         }
     ]
 }
