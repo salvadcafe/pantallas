@@ -16,11 +16,6 @@
             "src": "assets/videos/sodaItalianaFR.mp4"
         },
         {
-            "type": "image",
-            "src": "assets/images/promo_vota.jpg",
-            "duration": 12000
-        },
-        {
             "type": "video",
             "src": "assets/videos/prom_cerveza.mp4"
         }
