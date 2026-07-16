@@ -18,6 +18,10 @@
         {
             "type": "video",
             "src": "assets/videos/prom_cerveza.mp4"
+        },
+        {
+            "type": "video",
+            "src": "assets/videos/Nevados.mp4"
         }
     ]
 }
