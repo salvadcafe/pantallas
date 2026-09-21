@@ -9,11 +9,23 @@
         },
         {
             "type": "video",
+            "src": "assets/videos/video_promo_inicial_pizza.mp4"
+        },
+        {
+            "type": "video",
             "src": "assets/videos/arom_FA.mp4"
         },
         {
             "type": "video",
+            "src": "assets/videos/video_promo_inicial_pizza.mp4"
+        },
+        {
+            "type": "video",
             "src": "assets/videos/sodaItalianaFR.mp4"
+        },
+        {
+            "type": "video",
+            "src": "assets/videos/video_promo_inicial_pizza.mp4"
         },
         {
             "type": "video",
@@ -22,6 +34,10 @@
         {
             "type": "video",
             "src": "assets/videos/Nevados.mp4"
+        },
+        {
+            "type": "video",
+            "src": "assets/videos/video_promo_inicial_pizza.mp4"
         }
     ]
 }
