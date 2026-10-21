@@ -1,6 +1,6 @@
 {
     "name": "Patanlla Izquierda",
-    "rotation": 270,
+    "rotation": 90,
     "refreshConfigSeconds": 60,
     "items": [
         {
